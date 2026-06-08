@@ -5,7 +5,7 @@
       "src": "jarves-app/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "outputDirectory": "dist"
       }
     },
     {
