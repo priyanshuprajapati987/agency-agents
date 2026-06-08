@@ -14,14 +14,9 @@
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "app.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "jarves-app/dist/$1"
-    }
+    { "src": "/api/(.*)", "dest": "/app.py" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ],
   "env": {
     "VERCEL": "1"
