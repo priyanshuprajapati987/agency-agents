@@ -1,14 +1,17 @@
 import os
 from .ai.gemini import GeminiLLM
+from .ai.godmode import GodmodeLLM
 
 def get_llm():
     """
     Factory function to get the configured LLM.
-    Currently hardcoded to Gemini, but can fallback if the API is unavailable.
+    Supports Gemini and G0DM0D3 (Multi-AI Race).
     """
     provider = os.getenv("LLM_PROVIDER", "gemini").lower()
     if provider == "gemini":
         return GeminiLLM()
+    elif provider == "godmode":
+        return GodmodeLLM()
     # elif provider == "openai":
     #     from .ai.openai import OpenAILLM
     #     return OpenAILLM()

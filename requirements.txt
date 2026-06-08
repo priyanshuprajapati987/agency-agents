@@ -3,3 +3,4 @@ python-dotenv
 requests
 Flask-SQLAlchemy
 google-genai
+Flask-Cors

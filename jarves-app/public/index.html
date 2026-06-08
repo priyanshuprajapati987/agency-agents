@@ -21,7 +21,14 @@
     .chat-window { min-height: 320px; max-height: 520px; overflow-y: auto; border: 1px solid #334155; border-radius: 16px; padding: 16px; background: #020617; }
     .message { margin-bottom: 16px; line-height: 1.6; }
     .message strong { display: block; margin-bottom: 6px; color: #93c5fd; }
+    .message.godmode { border-left: 4px solid #fbbf24; padding-left: 12px; }
+    .message.godmode strong { color: #fbbf24; }
+    .winner-badge { display: inline-block; background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-top: 8px; }
+    .race-stats { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
     .footer { text-align: center; color: #94a3b8; font-size: .95rem; }
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .settings-grid label { display: block; margin-bottom: 4px; font-size: 0.9rem; color: #94a3b8; }
+    select { width: 100%; border: 1px solid #334155; border-radius: 12px; padding: 12px; background: #0f172a; color: #e2e8f0; }
   </style>
 </head>
 <body>
@@ -31,6 +38,27 @@
   </header>
 
   <main class="container">
+    <section class="card">
+      <h2>AI Provider Settings</h2>
+      <form id="settingsForm" class="settings-grid">
+        <div>
+          <label for="providerSelect">AI Provider</label>
+          <select id="providerSelect">
+            <option value="openai">OpenAI (GPT-4o-mini)</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="godmode">G0DM0D3 (Multi-AI Race) 🏆</option>
+          </select>
+        </div>
+        <div>
+          <label for="apiKeyInput">OpenRouter API Key (for G0DM0D3)</label>
+          <input id="apiKeyInput" type="password" placeholder="sk-or-..." autocomplete="off" />
+        </div>
+      </form>
+      <p style="font-size: 0.85rem; color: #64748b; margin-top: 12px;">
+        <strong>G0DM0D3 Setup:</strong> Run <code>docker run -p 7860:7860 ghcr.io/elder-plinius/g0dm0d3</code> and set your OpenRouter API key above.
+      </p>
+    </section>
+
     <section class="card">
       <h2>Chat with Jarves</h2>
       <div class="chat-window" id="chatWindow"></div>

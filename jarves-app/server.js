@@ -15,9 +15,12 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 const useGemini = process.env.USE_GEMINI === "true" || process.env.USE_GEMINI === "1";
+const useGodmode = process.env.USE_GODMODE === "true" || process.env.USE_GODMODE === "1";
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const geminiModel = process.env.GEMINI_MODEL || "text-bison-001";
 const openai = useGemini ? null : new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const godmodeBaseUrl = process.env.GODMODE_BASE_URL || "http://localhost:7860/v1";
+const openrouterApiKey = process.env.OPENROUTER_API_KEY;
 
 const jarvesSystemPrompt = `
 You are Jarves, a trusted AI assistant built to help the user manage tasks, write code, and provide clear updates.
@@ -105,6 +108,54 @@ const callGemini = async (message) => {
   return `🚀 Hello! I'm Jarves, your AI assistant with full internet access!\n\nI can help you with:\n📰 Latest news & updates\n🔍 Web search & information lookup\n🌤️ Weather information\n🎨 Visual content & design help\n💻 Coding & development\n📋 Task management\n\nWhat would you like to explore?`;
 };
 
+// G0DM0D3 Multi-AI Race integration
+const callGodmode = async (message) => {
+  if (!openrouterApiKey) {
+    return "⚠️ G0DM0D3 requires OPENROUTER_API_KEY to be set. Please configure it in your environment.";
+  }
+
+  try {
+    const response = await fetch(`${godmodeBaseUrl}/ultraplinian/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openrouterApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'auto',
+        messages: [
+          { role: 'system', content: jarvesSystemPrompt.trim() },
+          { role: 'user', content: message },
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`G0DM0D3 API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    const metadata = data.metadata || {};
+
+    // Extract race metadata
+    const winner = metadata.winner || 'Unknown';
+    const score = metadata.score || 0;
+    const totalModels = metadata.total_models || 0;
+    const duration = metadata.duration || 0;
+
+    // Add race info as a comment at the end
+    const raceInfo = `\n\n---\n🏆 Race Winner: ${winner} (score: ${score}) from ${totalModels} models in ${duration.toFixed(1)}s`;
+    
+    return content + raceInfo;
+  } catch (error) {
+    console.error('G0DM0D3 error:', error);
+    return `⚠️ G0DM0D3 Error: ${error.message}\n\nMake sure G0DM0D3 is running:\ndocker run -p 7860:7860 ghcr.io/elder-plinius/g0dm0d3`;
+  }
+};
+
 app.get("/api/tasks", (req, res) => res.json({ tasks }));
 
 app.post("/api/tasks", (req, res) => {
@@ -135,32 +186,53 @@ app.delete("/api/tasks/:id", (req, res) => {
 
 app.post("/api/jarves", async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, provider: clientProvider, apiKey: clientApiKey } = req.body;
     if (!message || typeof message !== "string") {
       return res.status(400).json({ error: "Message is required." });
     }
 
     const userMessage = { role: "user", content: message };
-    const reply = useGemini
-      ? await callGemini(message)
-      : await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: jarvesSystemPrompt },
-            ...chatHistory.slice(-8),
-            userMessage
-          ],
-          max_tokens: 600,
-          temperature: 0.6
-        }).then((response) =>
-          response.choices?.[0]?.message?.content?.trim()
-        );
+    let reply;
+    let provider = clientProvider || (useGodmode ? "godmode" : useGemini ? "gemini" : "openai");
+
+    // Use client-provided API key for G0DM0D3 if available
+    const effectiveApiKey = clientApiKey || openrouterApiKey;
+
+    if (provider === "godmode") {
+      // Temporarily override the API key for this request
+      const originalApiKey = openrouterApiKey;
+      if (clientApiKey) {
+        process.env.OPENROUTER_API_KEY = clientApiKey;
+      }
+      reply = await callGodmode(message);
+      // Restore original API key
+      if (clientApiKey) {
+        process.env.OPENROUTER_API_KEY = originalApiKey;
+      }
+      provider = "godmode";
+    } else if (provider === "gemini") {
+      reply = await callGemini(message);
+      provider = "gemini";
+    } else {
+      reply = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: jarvesSystemPrompt },
+          ...chatHistory.slice(-8),
+          userMessage
+        ],
+        max_tokens: 600,
+        temperature: 0.6
+      }).then((response) =>
+        response.choices?.[0]?.message?.content?.trim()
+      );
+    }
 
     const jarvesReply = reply || "Sorry, I couldn't generate a response.";
     chatHistory.push(userMessage);
     chatHistory.push({ role: "assistant", content: jarvesReply });
 
-    res.json({ reply: jarvesReply });
+    res.json({ reply: jarvesReply, provider });
   } catch (error) {
     console.error("Jarves error:", error);
     res.status(500).json({ error: error?.message || "AI request failed." });

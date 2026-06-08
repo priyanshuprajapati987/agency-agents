@@ -3,7 +3,9 @@ import uuid
 import datetime
 import threading
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from dotenv import load_dotenv
+import requests
 
 load_dotenv(override=True)
 
@@ -21,6 +23,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"connect_args": {"check_same_thread": False}}
 
 db.init_app(app)
+
+# Enable CORS so the Vite frontend (localhost:5173) can call the Flask API during development
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 with app.app_context():
     db.create_all()
@@ -185,6 +190,123 @@ def webhook_whatsapp():
     thread.start()
     
     return ("", 204)
+
+
+@app.route('/api/jarves', methods=['POST'])
+def api_jarves():
+    """Proxy endpoint used by the Jarves frontend to call different AI providers.
+    Expects JSON body with: { message, provider, model, systemPrompt, geminiApiKey (optional) }
+    """
+    payload = request.get_json(force=True) or {}
+    message = payload.get('message') or payload.get('text') or ''
+    provider = (payload.get('provider') or 'openrouter').lower()
+    model = payload.get('model') or ''
+    systemPrompt = payload.get('systemPrompt') or ''
+
+    use_server_key = True
+    # If frontend explicitly passes useServerKey false, allow client key (dev only)
+    if isinstance(payload.get('useServerKey'), bool):
+        use_server_key = payload.get('useServerKey')
+
+    try:
+        if provider == 'openrouter':
+            api_key = os.getenv('OPENROUTER_API_KEY') if use_server_key else payload.get('openrouterApiKey')
+            if not api_key:
+                return jsonify({'error': 'Server missing OpenRouter API key'}), 500
+            body = {
+                'model': model or os.getenv('OPENROUTER_DEFAULT_MODEL', 'deepseek/deepseek-r1:free'),
+                'messages': [{ 'role': 'system', 'content': systemPrompt }] if systemPrompt else [],
+                'max_tokens': 2048,
+            }
+            # If history style message is provided, accept it
+            if payload.get('history'):
+                body['messages'] = payload.get('history')
+            else:
+                body['messages'] = ( [{ 'role': 'system', 'content': systemPrompt }] if systemPrompt else [] ) + [{ 'role': 'user', 'content': message }]
+
+            resp = requests.post('https://openrouter.ai/api/v1/chat/completions', json=body, headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'})
+            raw = resp.text
+            if not resp.ok:
+                # Try parse JSON error
+                try:
+                    err = resp.json()
+                    return jsonify({'error': err}), 500
+                except Exception:
+                    return jsonify({'error': f'OpenRouter error: {resp.status_code}', 'raw': raw}), 500
+            data = resp.json()
+            reply = data.get('choices', [{}])[0].get('message', {}).get('content', '')
+            return jsonify({'reply': reply, 'raw': data})
+
+        elif provider == 'gemini':
+            api_key = os.getenv('GEMINI_API_KEY') if use_server_key else payload.get('geminiApiKey')
+            if not api_key:
+                return jsonify({'error': 'Server missing GEMINI_API_KEY (set GEMINI_API_KEY env)'}), 500
+            # Use Google Generative Language endpoint (best-effort shape)
+            model_id = model or 'models/gemini-1.5-preview'
+            url = f'https://generativelanguage.googleapis.com/v1beta2/{model_id}:generate'
+            prompt_text = (systemPrompt + '\n\n' if systemPrompt else '') + message
+            body = {
+                'prompt': { 'text': prompt_text },
+                'temperature': 0.2,
+            }
+            headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {api_key}'}
+            resp = requests.post(url, json=body, headers=headers, timeout=30)
+            raw = resp.text
+            if not resp.ok:
+                try:
+                    return jsonify({'error': resp.json()}), 500
+                except Exception:
+                    return jsonify({'error': f'Gemini error: {resp.status_code}', 'raw': raw}), 500
+            data = resp.json()
+            # Parse common response shapes
+            reply = ''
+            if isinstance(data, dict):
+                # Try candidates -> output or candidates[0].content
+                if 'candidates' in data and isinstance(data['candidates'], list) and data['candidates']:
+                    first = data['candidates'][0]
+                    if isinstance(first, dict):
+                        reply = first.get('output', '') or first.get('content', '') or ''
+                if not reply and 'output' in data:
+                    # Some variants have output.text
+                    out = data.get('output')
+                    if isinstance(out, dict):
+                        reply = out.get('text', '')
+                if not reply:
+                    # Fallback: join string values
+                    for v in ('candidates', 'output', 'reply'):
+                        if v in data and isinstance(data[v], str):
+                            reply = data[v]
+            return jsonify({'reply': reply, 'raw': data})
+
+        elif provider == 'openai':
+            api_key = os.getenv('OPENAI_API_KEY') if use_server_key else payload.get('openaiApiKey')
+            if not api_key:
+                return jsonify({'error': 'Server missing OPENAI_API_KEY'}), 500
+            url = 'https://api.openai.com/v1/chat/completions'
+            body = {
+                'model': model or 'gpt-4o',
+                'messages': [{ 'role': 'system', 'content': systemPrompt }] if systemPrompt else []
+            }
+            if payload.get('history'):
+                body['messages'] = payload.get('history')
+            else:
+                body['messages'] = ( [{ 'role': 'system', 'content': systemPrompt }] if systemPrompt else [] ) + [{ 'role': 'user', 'content': message }]
+            resp = requests.post(url, json=body, headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'}, timeout=30)
+            raw = resp.text
+            if not resp.ok:
+                try:
+                    return jsonify({'error': resp.json()}), 500
+                except Exception:
+                    return jsonify({'error': f'OpenAI error: {resp.status_code}', 'raw': raw}), 500
+            data = resp.json()
+            reply = data.get('choices', [{}])[0].get('message', {}).get('content', '')
+            return jsonify({'reply': reply, 'raw': data})
+
+        else:
+            return jsonify({'error': f'Unsupported provider: {provider}'}), 400
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
