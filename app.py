@@ -12,13 +12,16 @@ load_dotenv(override=True)
 from services.telegram_service import send_message as telegram_send
 from services.whatsapp_service import send_message as whatsapp_send
 from services.ai_service import process_inbound_message
-from models import db, Message
+from models import db, Message, Task
 
 APP_ENV = os.getenv("APP_ENV", "development")
 
 app = Flask(__name__)
 # Configure database from environment, fallback to SQLite for local/demo use
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "sqlite:///jarvis.db")
+if os.getenv("VERCEL"):
+    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/jarvis.db"
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "sqlite:///jarvis.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"connect_args": {"check_same_thread": False}}
 
@@ -190,6 +193,34 @@ def webhook_whatsapp():
     thread.start()
     
     return ("", 204)
+
+
+@app.route("/api/tasks", methods=["GET"])
+def get_tasks():
+    tasks = Task.query.all()
+    return jsonify({"tasks": [t.to_dict() for t in tasks]})
+
+@app.route("/api/tasks", methods=["POST"])
+def create_task():
+    payload = request.get_json(force=True) or {}
+    title = payload.get("title")
+    status = payload.get("status", "todo")
+    if not title or not isinstance(title, str):
+        return jsonify({"error": "Task title is required."}), 400
+
+    task = Task(title=title.strip(), status=status)
+    db.session.add(task)
+    db.session.commit()
+    return jsonify({"task": task.to_dict()}), 201
+
+@app.route("/api/tasks/<task_id>", methods=["DELETE"])
+def delete_task(task_id):
+    task = db.session.get(Task, task_id)
+    if not task:
+        return jsonify({"error": "Task not found."}), 404
+    db.session.delete(task)
+    db.session.commit()
+    return jsonify({"success": True})
 
 
 @app.route('/api/jarves', methods=['POST'])

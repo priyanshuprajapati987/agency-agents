@@ -29,3 +29,19 @@ class Message(db.Model):
             "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
             "sent_at": self.sent_at.isoformat() + "Z" if self.sent_at else None
         }
+
+class Task(db.Model):
+    __tablename__ = 'tasks'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(20), default='todo') # todo, in_progress, done
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "status": self.status,
+            "createdAt": self.created_at.isoformat() + "Z" if self.created_at else None
+        }
