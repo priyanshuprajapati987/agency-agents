@@ -2,10 +2,10 @@
   "version": 2,
   "builds": [
     {
-      "src": "jarves-app/package.json",
+      "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "outputDirectory": "dist"
+        "outputDirectory": "jarves-app/dist"
       }
     },
     {

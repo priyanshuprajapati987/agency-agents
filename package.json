@@ -1,0 +1,7 @@
+{
+  "name": "agency-agents-root",
+  "private": true,
+  "scripts": {
+    "build": "cd jarves-app && npm install && npm run build"
+  }
+}
