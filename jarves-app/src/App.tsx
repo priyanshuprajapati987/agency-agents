@@ -282,6 +282,173 @@ export default function App() {
     await sendUserMessage(userText);
   };
 
+  const renderProviderSettings = () => {
+    switch (settings.activeProvider) {
+      case 'openai':
+        return (
+          <>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">OpenAI API Key</label>
+              <input
+                type="password"
+                value={settings.openaiApiKey}
+                onChange={e => settings.setOpenaiApiKey(e.target.value)}
+                placeholder="sk-..."
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">OpenAI Model</label>
+              <input
+                type="text"
+                value={settings.openaiModel}
+                onChange={e => settings.setOpenaiModel(e.target.value)}
+                placeholder="gpt-4o"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+          </>
+        )
+      case 'anthropic':
+        return (
+          <>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Anthropic API Key</label>
+              <input
+                type="password"
+                value={settings.anthropicApiKey}
+                onChange={e => settings.setAnthropicApiKey(e.target.value)}
+                placeholder="sk-..."
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Anthropic Model</label>
+              <input
+                type="text"
+                value={settings.anthropicModel}
+                onChange={e => settings.setAnthropicModel(e.target.value)}
+                placeholder="claude-3-5-sonnet-20241022"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+          </>
+        )
+      case 'gemini':
+        return (
+          <>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Gemini API Key</label>
+              <input
+                type="password"
+                value={settings.geminiApiKey}
+                onChange={e => settings.setGeminiApiKey(e.target.value)}
+                placeholder="gm-..."
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Gemini Model</label>
+              <input
+                type="text"
+                value={settings.geminiModel}
+                onChange={e => settings.setGeminiModel(e.target.value)}
+                placeholder="gemini-1.5-flash"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+          </>
+        )
+      case 'openrouter':
+        return (
+          <>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">OpenRouter API Key</label>
+              <input
+                type="password"
+                value={settings.openrouterApiKey}
+                onChange={e => settings.setOpenrouterApiKey(e.target.value)}
+                placeholder="or-..."
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">OpenRouter Model</label>
+              <input
+                type="text"
+                value={settings.openrouterModel}
+                onChange={e => settings.setOpenrouterModel(e.target.value)}
+                placeholder="deepseek/deepseek-r1:free"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+          </>
+        )
+      case 'ollama':
+        return (
+          <>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Ollama Base URL</label>
+              <input
+                type="text"
+                value={settings.ollamaBaseUrl}
+                onChange={e => settings.setOllamaBaseUrl(e.target.value)}
+                placeholder="http://localhost:11434/api/chat"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Ollama Model</label>
+              <input
+                type="text"
+                value={settings.ollamaModel}
+                onChange={e => settings.setOllamaModel(e.target.value)}
+                placeholder="llama3"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+          </>
+        )
+      case 'custom':
+        return (
+          <>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Custom Base URL</label>
+              <input
+                type="text"
+                value={settings.customBaseUrl}
+                onChange={e => settings.setCustomBaseUrl(e.target.value)}
+                placeholder="https://your-api.example.com/v1"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Custom API Key</label>
+              <input
+                type="password"
+                value={settings.customApiKey}
+                onChange={e => settings.setCustomApiKey(e.target.value)}
+                placeholder="custom-key"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Custom Model</label>
+              <input
+                type="text"
+                value={settings.customModel}
+                onChange={e => settings.setCustomModel(e.target.value)}
+                placeholder="model-name"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-[#00f2ff]"
+              />
+            </div>
+          </>
+        )
+      default:
+        return null
+    }
+  }
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#070b14] text-slate-200">
       
@@ -302,9 +469,16 @@ export default function App() {
                     <option value="gemini">Gemini</option>
                     <option value="openrouter">OpenRouter</option>
                     <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="ollama">Ollama</option>
+                    <option value="custom">Custom</option>
                   </select>
                 </div>
+
+                {renderProviderSettings()}
               </div>
+
+              <p className="mt-4 text-xs text-slate-500">API keys are saved locally in your browser only.</p>
 
               <div className="mt-8 flex justify-end">
                 <button 
@@ -352,7 +526,7 @@ export default function App() {
               initial={{ x: -300, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -300, opacity: 0 }}
-              className="absolute top-0 left-0 bottom-0 w-80 z-20 shadow-2xl"
+              className="absolute top-0 left-0 bottom-0 w-80 z-20 shadow-2xl overflow-hidden"
             >
               <MemoryPanel
                 memory={memory}

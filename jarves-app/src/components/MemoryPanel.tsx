@@ -49,6 +49,7 @@ export default function MemoryPanel({
   return (
     <aside style={{
       width: 340,
+      height: '100%',
       background: '#0c1322',
       borderLeft: '1px solid #1a2540',
       padding: 20,
